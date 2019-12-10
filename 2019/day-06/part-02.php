@@ -1393,22 +1393,39 @@ $orbitMaps = array_reduce($orbits, function ($carry, $orbit) {
     return $carry;
 });
 
-$orbitCount = array_reduce($orbitMaps, function ($carry, $orbit) use (
-    $orbitMaps
-) {
-    $i = 0;
-    if (array_key_exists('parent', $orbit)) {
-        $parent = $orbit['parent'];
-        while ($parent) {
-            $i++;
-            if (array_key_exists('parent', $orbitMaps[$parent])) {
-                $parent = $orbitMaps[$parent]['parent'];
-            } else {
-                $parent = false;
-            }
-        }
-    }
-    return $carry + $i;
+function findParents($node, $orbitMaps){
+	$parents = [];
+	if (array_key_exists('parent', $node)) {
+		$parent = $node['parent'];
+		while ($parent) {
+			$parents[] = $parent;
+			if (array_key_exists('parent', $orbitMaps[$parent])) {
+				$parent = $orbitMaps[$parent]['parent'];	
+			} else {
+				$parent = false;	
+			}
+		}
+	}
+	rsort($parents);	
+	
+	return $parents;
+	
+}
+
+$you = $orbitMaps['YOU'];
+$san = $orbitMaps['SAN'];
+
+$youParents = findParents($you, $orbitMaps);
+$sanParents = findParents($san, $orbitMaps);
+
+$diff1 = array_filter($youParents, function($n) use ($sanParents){
+	return !in_array($n, $sanParents);
 });
 
-echo $orbitCount . PHP_EOL;
+$diff2 = array_filter($sanParents, function($n) use ($youParents){
+	return !in_array($n, $youParents);
+});
+
+$diff = array_merge($diff1, $diff2);
+
+echo count($diff), PHP_EOL;
