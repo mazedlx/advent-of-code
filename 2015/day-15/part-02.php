@@ -50,9 +50,9 @@ for ($i = 0; $i <= 100; $i++) {
                     $durabilities = calc($items, 2, $tablespoons);
                     $flavor = calc($items, 3, $tablespoons);
                     $texture = calc($items, 4, $tablespoons);
-
+                    $calories = calc($items, 5, $tablespoons);
                     $totals = $capacities * $durabilities * $flavor * $texture;
-                    if ($totals > $max) {
+                    if ($calories == 500 && $totals > $max) {
                         echo $i, ' ',   $j, ' ', $k, ' ', $l, ' ';
                         echo $max = $totals;
                         echo PHP_EOL;
