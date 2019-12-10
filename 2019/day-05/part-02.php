@@ -39,26 +39,26 @@ function intcode($inputs)
             echo PHP_EOL;
             $i += 2;
         } elseif ($cmd === 5) {
-            if(getValue($inputs, $i + 1, $mode[0]) !== 0){
+            if (getValue($inputs, $i + 1, $mode[0]) !== 0) {
                 $i = getValue($inputs, $i + 2, $mode[1]);
             } else {
                 $i+=3;
-            }            
+            }
         } elseif ($cmd === 6) {
-            if(getValue($inputs, $i + 1, $mode[0]) === 0){
+            if (getValue($inputs, $i + 1, $mode[0]) === 0) {
                 $i = getValue($inputs, $i + 2, $mode[1]);
             } else {
                 $i+=3;
-            }            
+            }
         } elseif ($cmd === 7) {
-            if(getValue($inputs, $i + 1, $mode[0]) < getValue($inputs, $i + 2, $mode[1])){
+            if (getValue($inputs, $i + 1, $mode[0]) < getValue($inputs, $i + 2, $mode[1])) {
                 $inputs[$inputs[$i+3]] = 1;
             } else {
                 $inputs[$inputs[$i+3]] = 0;
             }
             $i+=4;
         } elseif ($cmd === 8) {
-            if(getValue($inputs, $i + 1, $mode[0]) === getValue($inputs, $i + 2, $mode[1])){
+            if (getValue($inputs, $i + 1, $mode[0]) === getValue($inputs, $i + 2, $mode[1])) {
                 $inputs[$inputs[$i+3]] = 1;
             } else {
                 $inputs[$inputs[$i+3]] = 0;
