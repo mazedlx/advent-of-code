@@ -1,13 +1,5 @@
 <?php
-/*
-   switch (mode) {
-        case 0:  return vi[vi[param]];
-        case 1:  return vi[param];
-        case 2:  return vi[rb + vi[param]];
-        default: throw Bad_mode{};
-    }
-*/
-error_reporting(0);
+
 function getValue($inputs, $i, $mode, $relativeBase = 0)
 {
     if ((int) $mode === 0) {
@@ -28,7 +20,6 @@ function intcode($inputs, $initial)
         $inputs[$key] = (int) $value;
     }
     for ($i = 0; $i < count($inputs);) {
-        #echo 'REL ', $relativeBase, ' ' ,$inputs[$i], ' ', $inputs[$i + 1], ' ', $inputs[$i + 2], ' ', $inputs[$i + 3], PHP_EOL;
         $cmd = (int) substr($inputs[$i], -2, 4);
         $mode = [0, 0, 0];
         if ($inputs[$i] > 99) {
@@ -44,7 +35,7 @@ function intcode($inputs, $initial)
         if ($cmd === 1) { // ADD
             if ((int) $mode[2] === 1) {
                 $inputs[$inputs[$i + 3]] = getValue($inputs, $i + 1, $mode[0], $relativeBase) +
-                getValue($inputs, $i + 2, $mode[1], $relativeBase);;
+                getValue($inputs, $i + 2, $mode[1], $relativeBase);
             } else {
                 $inputs[$relativeBase + $inputs[$i + 3]] = getValue($inputs, $i + 1, $mode[0], $relativeBase) +
                 getValue($inputs, $i + 2, $mode[1], $relativeBase);;
@@ -91,12 +82,16 @@ function intcode($inputs, $initial)
                     $inputs[$inputs[$i+3]] = 1;
                 } elseif ((int) $mode[2] === 2) {
                      $inputs[$relativeBase + $inputs[$i + 3]] = 1;
+                } else {
+                    die('bad mode');
                 }
             } else {
                 if ((int) $mode[2] === 0) {
                     $inputs[$inputs[$i+3]] = 0;
                 } elseif ((int) $mode[2] === 2) {
                      $inputs[$relativeBase + $inputs[$i + 3]] = 0;
+                }else {
+                    die('bad mode');
                 }
             }
             $i+=4;
