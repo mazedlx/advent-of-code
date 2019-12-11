@@ -106,7 +106,7 @@ class Intcode {
                     $this->step += 4;
                     break;
                 case 99:
-                    return $this->output;
+                    return 'halt';
                     break;
                 default: 
                     die('error cmd ' . $this->cmd . ' @ step ' . $this->step . PHP_EOL);
