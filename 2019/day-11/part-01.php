@@ -1,163 +1,127 @@
 <?php
 
-function getValue($inputs, $i, $mode, $relativeBase = 0)
-{
-    if ((int) $mode === 0) {
-        return $inputs[$inputs[$i]];
-    } elseif((int) $mode === 1) {
-        return $inputs[$i];
-    } elseif ((int) $mode === 2) {
-        return $inputs[$relativeBase + $inputs[$i]];
-    } else {
-        die('bad mode');
-    }
+class Intcode {
+	public $instructions;
+	public $step;
+	public $cmd;
+	public $mode;
+	public $initial;
+	public $relativeBase;
+
+	public function __construct($initial, $instructions) {
+		$this->initial = $initial;
+		$this->mode = [];
+		$this->step = 0;
+		$this->relativeBase = 0;
+		$this->instructions = array_map(function($instruction) { 
+			return (int) $instruction; 
+		}, explode(',', $instructions));
+	}
+
+	public function get($step, $mode)
+	{
+		switch($mode) {
+			case 0: // parameter
+				return $this->instructions[$this->instructions[$step]];
+			case 1; // intermediate
+				return $this->instructions[$step];
+			case 2: // relative
+				return $this->instructions[$this->relativeBase + $this->instructions[$step]];
+			default:
+				die('error mode');
+		}
+	}
+
+	public function set($value, $step, $mode) {
+		switch($mode) {
+			case 0: // parameter
+				return $this->instructions[$this->instructions[$step]] = $value;
+			case 2: // relative
+				return $this->instructions[$this->relativeBase + $this->instructions[$step]] = $value;
+			default:
+				die('error mode');
+		}
+	}
+
+	public function run() 
+	{
+		for($this->step; $this->step < count($this->instructions);) {
+			$this->cmd = (int) substr($this->instructions[$this->step], -2 ,5); 
+
+			if ($this->instructions[$this->step] > 99) {
+				$this->mode = str_split(
+					strrev(
+						substr($this->instructions[$this->step], 0, strlen($this->instructions[$this->step]) - 2)
+					)
+				);
+				$this->mode = array_map(function($mode) {
+					return (int) $mode;
+				}, $this->mode);
+				if (count($this->mode) < 2) {
+					$this->mode[] = 0;
+				}
+				if (count($this->mode) < 3) {
+					$this->mode[] = 0;
+				}
+			} else {
+				$this->mode = [0,0,0];
+			}
+			switch($this->cmd) {
+				case 1: // ADD
+					$value = $this->get($this->step + 1, $this->mode[0]) + $this->get($this->step + 2, $this->mode[1]);
+					$this->set($value, $this->step + 3, $this->mode[2]);
+					$this->step += 4;
+					break;
+				case 2: // MUL
+					$value = $this->get($this->step + 1, $this->mode[0]) * $this->get($this->step + 2, $this->mode[1]);
+					$this->set($value, $this->step + 3, $this->mode[2]);
+					$this->step += 4;
+					break;
+				case 3: // INP
+					$this->set($this->initial, $this->step + 1, $this->mode[0]);
+					$this->step += 2;
+					break;
+				case 4: // OUT
+					return $this->get($this->step + 1, $this->mode[0]);
+					$this->step += 2;
+					break;
+				case 5: // JIT
+					$this->get($this->step + 1, $this->mode[0]) !== 0 
+						? $this->step = $this->get($this->step + 2, $this->mode[1])
+						: $this->step += 3;
+					break;
+				case 6: // JIF
+					$this->get($this->step + 1, $this->mode[0]) === 0 
+						? $this->step = $this->get($this->step + 2, $this->mode[1])
+						: $this->step += 3;
+					break;
+				case 7: // LT
+					$this->get($this->step + 1, $this->mode[0]) < $this->get($this->step + 2, $this->mode[1])
+						? $this->set(1, $this->step + 3, $this->mode[2])
+						: $this->set(0, $this->step + 3, $this->mode[2]);
+					$this->step += 4;
+					break;
+				case 8: // EQ
+					$this->get($this->step + 1, $this->mode[0]) === $this->get($this->step + 2, $this->mode[1])
+						? $this->set(1, $this->step + 3, $this->mode[2])
+						: $this->set(0, $this->step + 3, $this->mode[2]);
+					$this->step += 4;
+					break;
+				case 9: // REL
+					$this->relativeBase += $this->get($this->step + 1, $this->mode[0]);
+					$this->step += 2;
+					break;
+				case 99:
+					echo 'halt', PHP_EOL;
+					return;
+				default: 
+					die('error cmd ' . $this->cmd . ' @ step ' . $this->step . PHP_EOL);
+			}
+
+		}
+
+	}
 }
-
-function intcode($inputs, $initial)
-{
-    $relativeBase = 0;
-    foreach ($inputs as $key => $value) {
-        $inputs[$key] = (int) $value;
-    }
-    for ($i = 0; $i < count($inputs);) {
-        $cmd = (int) substr($inputs[$i], -2, 4);
-        $mode = [0, 0, 0];
-        if ($inputs[$i] > 99) {
-            $mode = str_split(strrev(substr($inputs[$i], 0, strlen($inputs[$i]) - 2)));
-            if (count($mode) < 2) {
-                $mode[1] = 0;
-            }
-            if (count($mode) < 3) {
-                $mode[2] = 0;
-            }
-        }
-
-        if ($cmd === 1) { // ADD
-            if ((int) $mode[2] === 1) {
-                $inputs[$inputs[$i + 3]] = getValue($inputs, $i + 1, $mode[0], $relativeBase) +
-                getValue($inputs, $i + 2, $mode[1], $relativeBase);
-            } else {
-                $inputs[$relativeBase + $inputs[$i + 3]] = getValue($inputs, $i + 1, $mode[0], $relativeBase) +
-                getValue($inputs, $i + 2, $mode[1], $relativeBase);;
-            }
-            $i += 4;
-        } elseif ($cmd === 2) { // MUL
-            if ((int) $mode[2] === 1) {
-                $inputs[$inputs[$i + 3]] = getValue($inputs, $i + 1, $mode[0], $relativeBase) *
-                getValue($inputs, $i + 2, $mode[1], $relativeBase);;
-            } else {
-                $inputs[$relativeBase + $inputs[$i + 3]] = getValue($inputs, $i + 1, $mode[0], $relativeBase) *
-                getValue($inputs, $i + 2, $mode[1], $relativeBase);;
-            }
-            $i += 4;
-        } elseif ($cmd === 3) { // INP
-            if((int)$mode[0] === 0) {
-                 $inputs[$inputs[$i + 1]] = $initial;
-            } elseif ((int) $mode[0] === 1) {
-                $inputs[$i + 1] = $initial;
-            } elseif ((int) $mode[0] === 2) {
-                $inputs[$relativeBase + $inputs[$i + 1]] = $initial;
-            } else {
-                die ('bad mode');
-            }
-            $i+=2;
-        } elseif ($cmd === 4) { // OUT
-            return getValue($inputs, $i + 1, $mode[0], $relativeBase);
-            $i += 2;
-        } elseif ($cmd === 5) { // JMP
-            if (getValue($inputs, $i + 1, $mode[0], $relativeBase) !== 0) {                
-                $i = getValue($inputs, $i + 2, $mode[1], $relativeBase);    
-            } else {
-                $i+=3;
-            }
-        } elseif ($cmd === 6) { // NJP
-            if (getValue($inputs, $i + 1, $mode[0], $relativeBase) === 0) {
-                $i = getValue($inputs, $i + 2, $mode[1], $relativeBase);
-            } else {
-                $i+=3;
-            }
-        } elseif ($cmd === 7) { // LT
-            if (getValue($inputs, $i + 1, $mode[0], $relativeBase) < getValue($inputs, $i + 2, $mode[1], $relativeBase)) {
-                if ((int) $mode[2] === 0) {
-                    $inputs[$inputs[$i+3]] = 1;
-                } elseif ((int) $mode[2] === 2) {
-                     $inputs[$relativeBase + $inputs[$i + 3]] = 1;
-                } else {
-                    die('bad mode');
-                }
-            } else {
-                if ((int) $mode[2] === 0) {
-                    $inputs[$inputs[$i+3]] = 0;
-                } elseif ((int) $mode[2] === 2) {
-                     $inputs[$relativeBase + $inputs[$i + 3]] = 0;
-                }else {
-                    die('bad mode');
-                }
-            }
-            $i+=4;
-        } elseif ($cmd === 8) { // EQ
-            if (getValue($inputs, $i + 1, $mode[0], $relativeBase) === getValue($inputs, $i + 2, $mode[1], $relativeBase)) {
-                if ((int) $mode[2] === 0) {
-                    $inputs[$inputs[$i+3]] = 1;
-                } elseif ((int) $mode[2] === 2) {
-                     $inputs[$relativeBase + $inputs[$i + 3]] = 1;
-                }
-            } else {
-                if ((int) $mode[2] === 0) {
-                    $inputs[$inputs[$i+3]] = 0;
-                } elseif ((int) $mode[2] === 2) {
-                     $inputs[$relativeBase + $inputs[$i + 3]] = 0;
-                }
-            }
-            $i+=4;
-        } elseif ($cmd === 9) { // REL
-            if ((int) $mode[0] === 0) {
-                $relativeBase += $inputs[$inputs[$i + 1]];
-            } elseif ((int)$mode[0] === 1) {
-                $relativeBase += $inputs[$i + 1];
-            } elseif ((int)$mode[0] === 2) { 
-                $relativeBase += $inputs[$relativeBase + $inputs[$i + 1]];
-            } else {
-                die('bad code');
-            }
-            $i+=2;
-        } elseif ($cmd === 99) {
-            return 'halt 99';
-        } else {
-            die('error cmd ' . $cmd);
-        }
-    }
-}
-
-$inputs = explode(
-    ',',
-    '1102,34463338,34463338,63,1007,63,34463338,63,1005,63,53,1102,1,3,1000,109,988,209,12,9,1000,209,6,209,3,203,0,1008,1000,1,63,1005,63,65,1008,1000,2,63,1005,63,904,1008,1000,0,63,1005,63,58,4,25,104,0,99,4,0,104,0,99,4,17,104,0,99,0,0,1101,36,0,1004,1102,28,1,1003,1101,0,0,1020,1102,22,1,1016,1101,21,0,1015,1102,897,1,1028,1101,0,815,1022,1101,554,0,1027,1101,0,38,1005,1102,33,1,1008,1101,0,23,1018,1101,826,0,1025,1101,0,30,1013,1102,31,1,1017,1102,35,1,1010,1102,1,34,1007,1102,1,892,1029,1101,0,808,1023,1102,29,1,1014,1102,1,1,1021,1101,0,39,1002,1101,0,561,1026,1102,1,27,1009,1102,20,1,1019,1102,37,1,1011,1101,32,0,1000,1102,1,26,1001,1101,0,25,1012,1102,24,1,1006,1101,0,835,1024,109,10,21108,40,41,4,1005,1014,201,1001,64,1,64,1105,1,203,4,187,1002,64,2,64,109,-12,2101,0,9,63,1008,63,34,63,1005,63,229,4,209,1001,64,1,64,1105,1,229,1002,64,2,64,109,-4,1202,8,1,63,1008,63,39,63,1005,63,255,4,235,1001,64,1,64,1106,0,255,1002,64,2,64,109,12,1201,2,0,63,1008,63,34,63,1005,63,279,1001,64,1,64,1105,1,281,4,261,1002,64,2,64,109,12,1206,2,299,4,287,1001,64,1,64,1106,0,299,1002,64,2,64,109,-21,1202,7,1,63,1008,63,34,63,1005,63,319,1106,0,325,4,305,1001,64,1,64,1002,64,2,64,109,5,1201,-2,0,63,1008,63,32,63,1005,63,347,4,331,1105,1,351,1001,64,1,64,1002,64,2,64,109,-2,1208,3,28,63,1005,63,373,4,357,1001,64,1,64,1106,0,373,1002,64,2,64,109,5,2107,28,4,63,1005,63,389,1106,0,395,4,379,1001,64,1,64,1002,64,2,64,109,3,1208,1,26,63,1005,63,415,1001,64,1,64,1106,0,417,4,401,1002,64,2,64,109,-5,2101,0,0,63,1008,63,25,63,1005,63,441,1001,64,1,64,1105,1,443,4,423,1002,64,2,64,109,14,1206,4,459,1001,64,1,64,1105,1,461,4,449,1002,64,2,64,109,-11,21107,41,40,4,1005,1010,477,1105,1,483,4,467,1001,64,1,64,1002,64,2,64,109,1,2107,23,-1,63,1005,63,501,4,489,1106,0,505,1001,64,1,64,1002,64,2,64,109,1,1207,-4,37,63,1005,63,523,4,511,1106,0,527,1001,64,1,64,1002,64,2,64,109,8,1205,5,545,4,533,1001,64,1,64,1105,1,545,1002,64,2,64,109,14,2106,0,-3,1001,64,1,64,1106,0,563,4,551,1002,64,2,64,109,-29,2108,32,-1,63,1005,63,585,4,569,1001,64,1,64,1105,1,585,1002,64,2,64,109,19,21108,42,42,-6,1005,1014,603,4,591,1106,0,607,1001,64,1,64,1002,64,2,64,109,-12,1207,-7,25,63,1005,63,627,1001,64,1,64,1106,0,629,4,613,1002,64,2,64,109,12,21102,43,1,-7,1008,1013,43,63,1005,63,655,4,635,1001,64,1,64,1105,1,655,1002,64,2,64,109,-11,21101,44,0,6,1008,1015,46,63,1005,63,675,1106,0,681,4,661,1001,64,1,64,1002,64,2,64,109,-1,21102,45,1,7,1008,1015,42,63,1005,63,701,1106,0,707,4,687,1001,64,1,64,1002,64,2,64,109,-1,2102,1,2,63,1008,63,26,63,1005,63,731,1001,64,1,64,1106,0,733,4,713,1002,64,2,64,109,6,21107,46,47,-2,1005,1011,755,4,739,1001,64,1,64,1105,1,755,1002,64,2,64,109,2,21101,47,0,-2,1008,1013,47,63,1005,63,777,4,761,1106,0,781,1001,64,1,64,1002,64,2,64,109,10,1205,-5,793,1106,0,799,4,787,1001,64,1,64,1002,64,2,64,109,-1,2105,1,-1,1001,64,1,64,1105,1,817,4,805,1002,64,2,64,109,9,2105,1,-9,4,823,1001,64,1,64,1105,1,835,1002,64,2,64,109,-36,2108,38,7,63,1005,63,855,1001,64,1,64,1106,0,857,4,841,1002,64,2,64,109,13,2102,1,-6,63,1008,63,36,63,1005,63,879,4,863,1106,0,883,1001,64,1,64,1002,64,2,64,109,10,2106,0,8,4,889,1105,1,901,1001,64,1,64,4,64,99,21101,0,27,1,21101,915,0,0,1106,0,922,21201,1,49329,1,204,1,99,109,3,1207,-2,3,63,1005,63,964,21201,-2,-1,1,21102,1,942,0,1105,1,922,21201,1,0,-1,21201,-2,-3,1,21102,957,1,0,1106,0,922,22201,1,-1,-2,1105,1,968,22102,1,-2,-2,109,-3,2105,1,0');
-
-$testStrings = [
-    '109, -1, 4, 1, 99', // outputs -1
-    '109, -1, 104, 1, 99', // outputs 1
-    '109, -1, 204, 1, 99', // outputs 109
-    '109, 1, 9, 2, 204, -6, 99', // outputs 204
-    '109, 1, 109, 9, 204, -6, 99', // outputs 204
-    '109, 1, 209, -1, 204, -106, 99', // outputs 204
-    '109, 1, 3, 3, 204, 2, 99', // outputs the input
-    '109, 1, 203, 2, 204, 2, 99', // outputs the input
-];
-
-$expected = [
-    -1,
-    1,
-    109,
-    204,
-    204,
-    204,
-    0,
-    0,
-];
-
-echo intcode($inputs, 1), PHP_EOL; 
-foreach($testStrings as $key => $test) {
-    $test = explode(',', $test);
-    var_dump(intcode($test, 0) === $expected[$key]);
-}
-
+ 
+$intcode = new Intcode(1, '3,8,1005,8,330,1106,0,11,0,0,0,104,1,104,0,3,8,102,-1,8,10,1001,10,1,10,4,10,108,0,8,10,4,10,1001,8,0,28,1,1103,17,10,1006,0,99,1006,0,91,1,102,7,10,3,8,1002,8,-1,10,101,1,10,10,4,10,108,1,8,10,4,10,1002,8,1,64,3,8,102,-1,8,10,1001,10,1,10,4,10,108,0,8,10,4,10,102,1,8,86,2,4,0,10,1006,0,62,2,1106,13,10,3,8,1002,8,-1,10,1001,10,1,10,4,10,1008,8,0,10,4,10,101,0,8,120,1,1109,1,10,1,105,5,10,3,8,102,-1,8,10,1001,10,1,10,4,10,108,1,8,10,4,10,1002,8,1,149,1,108,7,10,1006,0,40,1,6,0,10,2,8,9,10,3,8,102,-1,8,10,1001,10,1,10,4,10,1008,8,1,10,4,10,1002,8,1,187,1,1105,10,10,3,8,102,-1,8,10,1001,10,1,10,4,10,1008,8,1,10,4,10,1002,8,1,213,1006,0,65,1006,0,89,1,1003,14,10,3,8,102,-1,8,10,1001,10,1,10,4,10,108,0,8,10,4,10,102,1,8,244,2,1106,14,10,1006,0,13,3,8,102,-1,8,10,1001,10,1,10,4,10,108,0,8,10,4,10,1001,8,0,273,3,8,1002,8,-1,10,1001,10,1,10,4,10,108,1,8,10,4,10,1001,8,0,295,1,104,4,10,2,108,20,10,1006,0,94,1006,0,9,101,1,9,9,1007,9,998,10,1005,10,15,99,109,652,104,0,104,1,21102,937268450196,1,1,21102,1,347,0,1106,0,451,21101,387512636308,0,1,21102,358,1,0,1105,1,451,3,10,104,0,104,1,3,10,104,0,104,0,3,10,104,0,104,1,3,10,104,0,104,1,3,10,104,0,104,0,3,10,104,0,104,1,21101,0,97751428099,1,21102,1,405,0,1105,1,451,21102,1,179355806811,1,21101,416,0,0,1106,0,451,3,10,104,0,104,0,3,10,104,0,104,0,21102,1,868389643008,1,21102,439,1,0,1105,1,451,21102,1,709475853160,1,21102,450,1,0,1105,1,451,99,109,2,22102,1,-1,1,21101,0,40,2,21101,482,0,3,21102,1,472,0,1105,1,515,109,-2,2106,0,0,0,1,0,0,1,109,2,3,10,204,-1,1001,477,478,493,4,0,1001,477,1,477,108,4,477,10,1006,10,509,1101,0,0,477,109,-2,2105,1,0,0,109,4,2101,0,-1,514,1207,-3,0,10,1006,10,532,21101,0,0,-3,21202,-3,1,1,22101,0,-2,2,21101,1,0,3,21101,0,551,0,1105,1,556,109,-4,2106,0,0,109,5,1207,-3,1,10,1006,10,579,2207,-4,-2,10,1006,10,579,22102,1,-4,-4,1105,1,647,21201,-4,0,1,21201,-3,-1,2,21202,-2,2,3,21101,0,598,0,1106,0,556,22101,0,1,-4,21102,1,1,-1,2207,-4,-2,10,1006,10,617,21101,0,0,-1,22202,-2,-1,-2,2107,0,-3,10,1006,10,639,22102,1,-1,1,21102,1,639,0,105,1,514,21202,-2,-1,-2,22201,-4,-2,-4,109,-5,2105,1,0');
+echo $intcode->run();
