@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 $moons = [
     '<x=3, y=15, z=8>',
@@ -55,15 +55,38 @@ function applyVelocity($coords)
 }
 
 $initial = $coords;
-
-for ($step = 0; $step < 10000000; $step++) {
+$periods = [];
+for ($step = 0; $step < 1000000000; $step++) {
     foreach ($perms as $perm) {
         $coords = applyGravity($coords, $perm);
     }
     $coords = applyVelocity($coords);
-    if($initial[0] === $coords[0]) {
-    	echo $step, PHP_EOL;
-    	exit; 
-    }
-
+    
+    if ($coords[0]['pos']['x'] === $initial[0]['pos']['x'] && 
+    	$coords[1]['pos']['x'] === $initial[1]['pos']['x'] && 
+    	$coords[2]['pos']['x'] === $initial[2]['pos']['x'] &&
+		$coords[3]['pos']['x'] === $initial[3]['pos']['x']
+	) {
+		$periods['x'] = $step;
+	}
+	if ($coords[0]['pos']['y'] === $initial[0]['pos']['y'] && 
+    	$coords[1]['pos']['y'] === $initial[1]['pos']['y'] && 
+    	$coords[2]['pos']['y'] === $initial[2]['pos']['y'] &&
+		$coords[3]['pos']['y'] === $initial[3]['pos']['y']
+	) {
+		$periods['y'] = $step;
+	}
+	if ($coords[0]['pos']['z'] === $initial[0]['pos']['z'] && 
+    	$coords[1]['pos']['z'] === $initial[1]['pos']['z'] && 
+    	$coords[2]['pos']['z'] === $initial[2]['pos']['z'] &&
+		$coords[3]['pos']['z'] === $initial[3]['pos']['z']
+	) {
+		$periods['z'] = $step;
+	}
+  
+	if(isset($periods['x']) && isset($periods['y']) && isset($periods['z'])){
+		$loops = $periods['x'] * $periods['y'] * $periods['z'];
+		echo $loops, PHP_EOL;
+		exit;
+	}
 }
