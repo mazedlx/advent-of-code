@@ -133,6 +133,7 @@ $x = 0;
 $y = 0;
 $rotation = 0;
 for($i = 0; $i < count($intcode->output); ) {
+	echo $intcode->output[$i] === 1,': ', $x, '/', $y, PHP_EOL;
 	$panels["$x/$y"] = $intcode->output[$i] === 1 ? '#' : '.';
 	if ($intcode->output[$i+1] === 0) {
 		$rotation -= 90; 
@@ -147,7 +148,7 @@ for($i = 0; $i < count($intcode->output); ) {
 	} elseif($rotation === -90 || $rotation === 270) {
 		$x-=1;
 	} elseif(abs($rotation) === 180) {
-		$y+=1;
+		$y-=1;
 	}
 	$i+=2;
 }
