@@ -6,6 +6,7 @@ $moons = [
     '<x=-10, y=8, z=2>',
     '<x=8, y=4, z=-5>'
 ];
+
 $coords = [];
 $perms = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]];
 foreach ($moons as $moon) {
@@ -53,32 +54,16 @@ function applyVelocity($coords)
     return $coords;
 }
 
-function calcTotalEnergy($coords)
-{
-	foreach (range(0, 3) as $moon) {
-    $potentialEnergies[$moon] = 0;
-    $kineticEnergies[$moon] = 0;
-    $totalEnergies[$moon] = 0;
-}
-    foreach (range(0, 3) as $moon) {
-        foreach (['x', 'y', 'z'] as $axis) {
-            $potentialEnergies[$moon] += abs($coords[$moon]['pos'][$axis]);
-        }
-        foreach (['x', 'y', 'z'] as $axis) {
-            $kineticEnergies[$moon] += abs($coords[$moon]['vel'][$axis]);
-        }
-        $totalEnergies[$moon] =
-            $potentialEnergies[$moon] * $kineticEnergies[$moon];
-    }
-  	return array_reduce($totalEnergies, function($carry, $item) {
-    	return $carry + $item;
-    });
-}
+$initial = $coords;
 
-for ($step = 0; $step < 1000; $step++) {
+for ($step = 0; $step < 10000000; $step++) {
     foreach ($perms as $perm) {
         $coords = applyGravity($coords, $perm);
     }
     $coords = applyVelocity($coords);
+    if($initial[0] === $coords[0]) {
+    	echo $step, PHP_EOL;
+    	exit; 
+    }
+
 }
-echo calcTotalEnergy($coords), PHP_EOL;
