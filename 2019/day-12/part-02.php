@@ -7,13 +7,6 @@ $moons = [
     '<x=8, y=4, z=-5>'
 ];
 
-$moons = [
-	'x=-1, y=0, z=2>',
-	'<x=2, y=-10, z=-7>',
-	'<x=4, y=-8, z=8>',
-	'<x=3, y=5, z=-1>',
-];
-
 $coords = [];
 $perms = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]];
 foreach ($moons as $moon) {
@@ -61,9 +54,18 @@ function applyVelocity($coords)
     return $coords;
 }
 
+function gcd($a, $b)
+{
+ 	return $a ? gcd($b % $a, $a) : $b;
+}
+
+function lcm($a, $b) {
+	return ($a * $b)/gcd($a, $b);
+}
+
 $initial = $coords;
 $periods = [];
-for ($step = 0; $step < 11088; $step++) {
+for ($step = 1; $step < 1000000; $step++) {
     foreach ($perms as $perm) {
         $coords = applyGravity($coords, $perm);
     }
@@ -71,31 +73,30 @@ for ($step = 0; $step < 11088; $step++) {
 
     if ($coords[0]['pos']['x'] === $initial[0]['pos']['x'] && 
     	$coords[1]['pos']['x'] === $initial[1]['pos']['x'] && 
-    	$coords[2]['pos']['x'] === $initial[2]['pos']['x'] &&
-		$coords[3]['pos']['x'] === $initial[3]['pos']['x'] && 
+    	$coords[2]['pos']['x'] === $initial[2]['pos']['x'] && 
+    	$coords[3]['pos']['x'] === $initial[3]['pos']['x'] && 
 		!isset($periods['x'])
 	) {
-		$periods['x'] = $step;
+		$periods['x'] = $step + 1;
 	}
 	if ($coords[0]['pos']['y'] === $initial[0]['pos']['y'] && 
     	$coords[1]['pos']['y'] === $initial[1]['pos']['y'] && 
-    	$coords[2]['pos']['y'] === $initial[2]['pos']['y'] &&
-		$coords[3]['pos']['y'] === $initial[3]['pos']['y'] && 
+    	$coords[2]['pos']['y'] === $initial[2]['pos']['y'] && 
+    	$coords[3]['pos']['y'] === $initial[3]['pos']['y'] && 
 		!isset($periods['y'])
 	) {
-		$periods['y'] = $step;
+		$periods['y'] = $step + 1;
 	}
 	if ($coords[0]['pos']['z'] === $initial[0]['pos']['z'] && 
     	$coords[1]['pos']['z'] === $initial[1]['pos']['z'] && 
-    	$coords[2]['pos']['z'] === $initial[2]['pos']['z'] &&
-		$coords[3]['pos']['z'] === $initial[3]['pos']['z'] && 
+    	$coords[2]['pos']['z'] === $initial[2]['pos']['z'] && 
+    	$coords[3]['pos']['z'] === $initial[3]['pos']['z'] && 
 		!isset($periods['z'])
 	) {
-		$periods['z'] = $step;
+		$periods['z'] = $step + 1;
 	}
-  
-	if ($step % 2772 == 0) {
-		echo implode(', ', $coords[0]['pos']), PHP_EOL;
-			echo implode(', ', $coords[1]['pos']), PHP_EOL;
+	if (count($periods) === 3) {
+		echo implode(', ', $periods), ', Rotations: ', lcm($periods['z'], lcm($periods['x'], $periods['y'])), PHP_EOL;
+		exit;
 	}
 }
