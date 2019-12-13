@@ -1,7 +1,5 @@
 <?php
 
-error_reporting(0);
-
 class Intcode
 {
     public $instructions;
