@@ -12,6 +12,9 @@ class Intcode
     public $relativeBase;
     public $currentOutput;
     public $panels = [];
+    public $x = 0;
+    public $y = 0;
+    public $rotation = 0;
     public function __construct($initial, $instructions)
     {
         $this->currentOutput = $initial;
@@ -101,8 +104,30 @@ class Intcode
                     foreach(array_chunk($this->output, 2) as $arr) {
                         $color = array_pop($arr);
                         $rotation = array_pop($arr);
-                        $this->currentOutput = $color;
+                        
+       				    if(array_key_exists($this->x.'/'.$this->y, $this->panels)) {
+					    	$this->currentOutput =  $this->panels[$this->$x.'/'.$this->$y];
+					    } else {
+					    	$this->currentOutput = 0;
+					    }
+
+                        $this->panels[$this->$x.'/'.$this->$y] = $color;
+					    $rotation === 0 
+					    	? $rotation -= 90 
+					    	: $rotation += 90;
+
+					    $this->rotation = $rotation % 360;
+					    if ($this->rotation === 0) {
+					        $this->y += 1;
+					    } elseif ($this->rotation === 90 || $this->rotation === -270) {
+					        $this->x += 1;
+					    } elseif ($this->rotation === -90 || $this->rotation === 270) {
+					        $this->x -= 1;
+					    } elseif (abs($this->rotation) === 180) {
+					        $this->y -= 1;
+					    }
                     }
+
 					$this->set(
 						$this->currentOutput,
                         $this->step + 1,
@@ -181,7 +206,7 @@ $maxX = 0;
 $minY = 0;
 $maxY = 0;
 $rotation = 0;
-$painted = [];
+
 for ($i = 0; $i < count($intcode->output); ) {
     $panels["$x/$y"] = $intcode->output[$i] === 1 ? '▓' : ' ';
     if ($intcode->output[$i + 1] === 0) {
