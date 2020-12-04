@@ -378,7 +378,6 @@ collect($moves)->each(function ($move, $index) use ($slope, &$trees) {
     $posX += $right;
   });
 });
-dump($trees);
 
 collect($trees)->reduce(function ($item, $carry) {
   return $item * $carry;
