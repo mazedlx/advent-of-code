@@ -1,6 +1,5 @@
 <?php
-$rules = '
-wavy turquoise bags contain no other bags.
+$rules = 'wavy turquoise bags contain no other bags.
 vibrant beige bags contain 4 drab lime bags, 1 muted violet bag, 5 drab plum bags, 5 shiny silver bags.
 plaid green bags contain 2 pale olive bags, 1 dark chartreuse bag, 1 vibrant olive bag, 1 pale bronze bag.
 plaid fuchsia bags contain 5 dull teal bags, 4 dark beige bags, 4 shiny teal bags, 5 vibrant orange bags.
@@ -595,68 +594,40 @@ faded crimson bags contain 3 dark chartreuse bags, 2 vibrant cyan bags, 3 mirror
 posh bronze bags contain 4 plaid lavender bags, 3 shiny gold bags, 5 mirrored coral bags, 2 shiny indigo bags.
 clear olive bags contain 2 muted gray bags, 2 dark red bags, 5 clear brown bags, 5 bright silver bags.';
 
-function parseRules(string $rules): array
-{
-  preg_match_all('#([\w ]+?) bags contain ([\w ,]+? bags?)\.#', $rules, $mo);
-  $outer = $mo[1];
-  $inner = array_map(function ($bags) {
-    if (preg_match_all('#(\d) ([\w ]+?) bags?#', $bags, $mi)) {
-      return array_combine($mi[2], $mi[1]);
+preg_match_all('/([\w ]+?) bags contain ([\w ,]+? bags?)\./', $rules, $lines);
+
+$rules = collect($lines[1])->combine(
+  collect($lines[2])->map(function ($bags) {
+    if (preg_match_all('/(\d) ([\w ]+?) bags?/', $bags, $matches)) {
+      return array_combine($matches[2], $matches[1]);
     }
-    return [];
-  }, $mo[2]);
-  return array_combine($outer, $inner);
-}
+  })
+);
 
-$rules = parseRules($rules);
-
-$allowed_outer_bags = [];
-
-function allowed_outers(array $inners, array $rules): array
+function traverseBags($search, $rules)
 {
-  $outers = [];
-  foreach ($rules as $outer => $allowed_inners) {
-    if (array_intersect(array_keys($allowed_inners), $inners)) {
-      $outers[] = $outer;
-    }
-  }
-  return $outers;
+  return $rules
+    ->filter(function ($innerBags, $outerBag) use ($search) {
+      if (!is_array($innerBags)) {
+        return false;
+      }
+      return array_intersect(array_keys($innerBags), $search);
+    })
+    ->map(function ($innerBags, $outerBag) {
+      return $outerBag;
+    })
+    ->toArray();
 }
 
-$inners = ['shiny gold'];
+$search = ['shiny gold'];
+$foundBags = [];
 
-while ($inners) {
-  $outers = allowed_outers($inners, $rules);
-  $allowed_outer_bags = array_merge($allowed_outer_bags, $outers);
-  $inners = $outers;
+while ($search) {
+  $outerBags = traverseBags($search, $rules);
+  $foundBags = array_merge($foundBags, $outerBags);
+  $search = $outerBags;
 }
 
-$allowed_outer_bags = array_unique($allowed_outer_bags);
-
-echo "Part 1: " . count($allowed_outer_bags) . "\n";
-
-# Part 2
-$outers = [
-  'shiny gold' => 1,
-];
-
-$required_inner = 0;
-
-function required_inners(array $outers, array $rules): array
-{
-  $req = [];
-  foreach ($outers as $outer => $qtyo) {
-    foreach ($rules[$outer] ?? [] as $inner => $qtyi) {
-      $req[$inner] = ($req[$inner] ?? 0) + $qtyo * $qtyi;
-    }
-  }
-  return $req;
-}
-
-while ($outers) {
-  $inners = required_inners($outers, $rules);
-  $required_inner += array_sum($inners);
-  $outers = $inners;
-}
-
-echo "Part 2: {$required_inner}\n";
+collect($foundBags)
+  ->unique()
+  ->count();
