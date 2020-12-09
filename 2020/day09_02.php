@@ -1010,7 +1010,6 @@ $numbers = collect(explode(PHP_EOL, $input))
 
 function check($target, $numbers)
 {
-  $hit = false;
   for ($i = 0; $i < count($numbers); $i++) {
     for ($j = 1; $j < count($numbers); $j++) {
       if ($target == array_sum(array_slice($numbers, $i, $j))) {
